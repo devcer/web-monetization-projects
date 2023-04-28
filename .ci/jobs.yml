@@ -1,0 +1,160 @@
+# Run 'pnpm build:ci' to build the .github/workflows/generated-jobs.yml
+matrices:
+  node-version: [18, 20]
+  test-command: [test:coverage, test:e2e:coverage]
+
+environments:
+  linux-node:
+    os: linux
+    tools: [node]
+    matrices: [node-version]
+  linux-node-jest:
+    os: linux
+    tools: [node]
+    matrices: [{ node-version: [18] }, test-command]
+  macos-node:
+    os: macos
+    tools: [node]
+    matrices: [ { node-version: [18] }]
+
+jobs:
+  lint-all:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: Lint Project
+          command: |
+            # show only errors with --quiet
+            pnpm lint:all --quiet
+
+  build-safari:
+    environments: [macos-node]
+    inner-steps:
+      - run:
+          name: Build Safari
+          command: |
+            cd packages/coil-extension
+            pnpm build-prod safari
+            scripts/build-safari.sh
+
+  coil-extension-package:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: Package for firefox
+          command: |
+            cd packages/coil-extension
+            ./package.sh firefox
+      - run:
+          name: Package for chrome
+          command: |
+            cd packages/coil-extension
+            ./package.sh chrome
+      - run:
+          name: Lint firefox package
+          command: |
+            cd packages/coil-extension
+            pnpm addons-linter coilfirefoxextension@coil.com.xpi
+
+  build-all-package-references-typescript:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: Build Root TypeScript Project - tsconfig.build.json
+          command: |
+            pnpm build:ts --verbose
+
+  # This builds the root tsconfig that the IDE uses and the tests are run under.
+  # Make sure there are no issues here that somehow other jobs haven't captured.
+  # This has been a problem in the past and could be again.
+  build-root-tsconfig:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: Build Root TypeScript Project - tsconfig.json
+          command: |
+            pnpm tsc -b tsconfig.json --verbose
+      - run:
+          name: Build Root TypeScript Project - tsconfig.cjs.json
+          command: |
+            pnpm tsc -b tsconfig.cjs.json --verbose
+      - run:
+          name: Build Root TypeScript Project - tsconfig.esm.json
+          command: |
+            pnpm tsc -b tsconfig.esm.json --verbose
+
+  jest-all:
+    environments: [linux-node-jest]
+    inner-steps:
+      - run:
+          name: Run jest via dynamic compilation
+          command: |
+            export DEBUG='coil*'
+            export TS_JEST_MAP_PATHS_TO_MODULES=true
+            xvfb-run -a pnpm {% matrix "test-command" %}
+      - run:
+          name: Run jest via babel
+          command: |
+            export DEBUG='coil*'
+            export TS_JEST_MAP_PATHS_TO_MODULES=true
+            cp jest.config.local.example.cjs jest.config.local.cjs 
+            xvfb-run -a pnpm {% matrix "test-command" %}
+      - run:
+          name: Run jest from build
+          command: |
+            export DEBUG='coil*'
+            pnpm clean:build || echo "already clean"
+            pnpm build:ts:verbose
+            export TS_JEST_MAP_PATHS_TO_MODULES=false
+            xvfb-run -a pnpm {% matrix "test-command" %}
+
+  jest-pnpm-run-all:
+    environments: [linux-node-jest]
+    inner-steps:
+      - run:
+          name: PNPM run jest via dynamic compilation
+          command: |
+            export TS_JEST_MAP_PATHS_TO_MODULES=true
+            export PUPPETEER_CACHE_DIR=$PWD/puppeteer-cache
+            xvfb-run -a pnpm run -r {% matrix "test-command" %}
+      - run:
+          name: PNPM run jest from build
+          command: |
+            pnpm clean:build || echo "already clean"
+            pnpm build:ts:verbose
+            export TS_JEST_MAP_PATHS_TO_MODULES=false
+            export PUPPETEER_CACHE_DIR=$PWD/puppeteer-cache
+            xvfb-run -a pnpm run -r  {% matrix "test-command" %}
+
+  packages-build-scripts:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: Packages Build Scripts
+          command: |
+            pnpm run -r build
+
+  pnpm-format-and-upkeep-diff-check:
+    environments: [linux-node]
+    inner-steps:
+      - run:
+          name: PNPM Dedupe Check
+          command: |
+            pnpm dedupe
+            git diff --exit-code
+      - run:
+          name: PNPM build:ci git diff --exit-code
+          command: |
+            pnpm build:ci
+            git diff --exit-code
+      - run:
+          name: PNPM format git diff --exit-code
+          command: |
+            pnpm format
+            pnpm upkeep
+            git diff --exit-code
+      - run:
+          name: Build generated code git diff --exit-code
+          command: |
+            pnpm run --stream -r generate-code
+            git diff --exit-code

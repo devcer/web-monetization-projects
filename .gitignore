@@ -19,8 +19,8 @@ packages/*/results
 packages/*/dist
 packages/*/dist2
 
-.eslintrc.local.js
-jest.config.local.js
+.eslintrc.local.cjs
+jest.config.local.cjs
 
 packages/coil-extension/test/fixtures/coil-oauth-wm.js
 .yarn/cache
