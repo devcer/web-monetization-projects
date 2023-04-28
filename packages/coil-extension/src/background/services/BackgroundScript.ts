@@ -161,6 +161,7 @@ export class BackgroundScript {
     }
   }
 
+  // Another starting point
   private setWindowsOnFocusedListener() {
     if (this.api.windows) {
       // The active window (and therefore active tab) has changed

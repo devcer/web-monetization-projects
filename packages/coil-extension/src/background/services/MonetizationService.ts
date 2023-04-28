@@ -38,6 +38,10 @@ const DISABLED = true
 
 @injectable()
 export class MonetizationService {
+  frameDictionary: {
+    [streamId: string]: FrameSpec
+  } = {}
+
   constructor(
     private assoc: StreamAssociations,
     private streams: Streams,
@@ -75,41 +79,58 @@ export class MonetizationService {
 
   routeStreamsMoneyEventsToContentScript() {
     // pass stream monetization events to the correct tab
-    this.streams.on('money', (details: StreamMoneyEvent) => {
-      const frame = this.assoc.getStreamFrame(details.requestId)
-      const { tabId, frameId } = frame
-      if (details.packetNumber === 0) {
-        const message: MonetizationStart = {
-          command: 'monetizationStart',
-          data: {
-            paymentPointer: details.paymentPointer,
-            requestId: details.requestId
-          }
-        }
-        this.api.tabs.sendMessage(tabId, message, { frameId })
-      }
-
-      const message: MonetizationProgress = {
-        command: 'monetizationProgress',
+    // this.streams.on('money', (details: StreamMoneyEvent) => {
+    // initial details event
+    const details: StreamMoneyEvent = {
+      packetNumber: 0,
+      paymentPointer: '$ilp.uphold.com/gRa4mXFEMYrL',
+      requestId: '', // random id
+      initiatingUrl: '',
+      msSinceLastPacket: 1000,
+      sentAmount: '',
+      amount: '10',
+      assetCode: 'USD',
+      assetScale: 1,
+      sourceAmount: '',
+      sourceAssetCode: '',
+      sourceAssetScale: 1,
+      receipt: ''
+    }
+    // const frame = this.assoc.getStreamFrame(details.requestId)
+    const frame = Object.values(this.frameDictionary)[0]
+    const { tabId, frameId } = frame
+    if (details.packetNumber === 0) {
+      const message: MonetizationStart = {
+        command: 'monetizationStart',
         data: {
           paymentPointer: details.paymentPointer,
-          amount: details.amount,
-          assetCode: details.assetCode,
-          requestId: details.requestId,
-          assetScale: details.assetScale,
-          receipt: details.receipt,
-          sourceAmount: details.sourceAmount,
-          sourceAssetScale: details.sourceAssetScale,
-          sourceAssetCode: details.sourceAssetCode
+          requestId: details.requestId
         }
       }
-      this.handleMonetizationProgress(frame, details)
-      // We don't want to send this progress event if the link has already
-      // errored.
-      if (this.spspState.sendProgressEvent(details.requestId)) {
-        this.api.tabs.sendMessage(tabId, message, { frameId })
+      this.api.tabs.sendMessage(tabId, message, { frameId })
+    }
+
+    const message: MonetizationProgress = {
+      command: 'monetizationProgress',
+      data: {
+        paymentPointer: details.paymentPointer,
+        amount: details.amount,
+        assetCode: details.assetCode,
+        requestId: details.requestId,
+        assetScale: details.assetScale,
+        receipt: details.receipt,
+        sourceAmount: details.sourceAmount,
+        sourceAssetScale: details.sourceAssetScale,
+        sourceAssetCode: details.sourceAssetCode
       }
-    })
+    }
+    this.handleMonetizationProgress(frame, details)
+    // We don't want to send this progress event if the link has already
+    // errored.
+    // if (this.spspState.sendProgressEvent(details.requestId)) {
+    this.api.tabs.sendMessage(tabId, message, { frameId })
+    // }
+    // })
   }
 
   handleMonetizationProgress(
@@ -128,6 +149,7 @@ export class MonetizationService {
     const { tabId } = frame
     const { requestId } = details
 
+    this.frameDictionary[requestId] = frame
     this.assoc.addStreamId(frame, requestId)
     this.activeTabLogger.log(`startWM called with ${requestId}`, frame)
     this.tabStates.setFrame(frame, {
@@ -137,6 +159,8 @@ export class MonetizationService {
 
     // This used to be sent from content script as a separate message
     this.setFrameMonetized(frame, requestId, 0, 'startWebMonetization')
+
+    this.routeStreamsMoneyEventsToContentScript()
 
     if (DISABLED) {
       return true
@@ -421,6 +445,6 @@ export class MonetizationService {
   init() {
     this.handleStreamsAbortEvent()
     this.routeStreamsMoneyEventsToContentScript()
-    this.spspState.bindToStreamsEvents()
+    // this.spspState.bindToStreamsEvents()
   }
 }

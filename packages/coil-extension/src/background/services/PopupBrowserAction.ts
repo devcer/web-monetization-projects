@@ -89,6 +89,11 @@ export class PopupBrowserAction {
     }
   }
 
+  /**
+   * Setting browser action icon
+   * @param tabId
+   * @param state
+   */
   setBrowserAction(tabId: number, state: TabState) {
     const actionApi = this.actionApi()
 

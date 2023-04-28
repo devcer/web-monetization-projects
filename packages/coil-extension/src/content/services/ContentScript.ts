@@ -69,6 +69,7 @@ export class ContentScript {
       this.window,
       this.document,
       details => {
+        // starting point
         this.onPaymentDetailsChange(details)
       },
       false
@@ -141,6 +142,16 @@ export class ContentScript {
         return
       }
     }
+    // console.log('Starting web monetization', document)
+    // const event = new Event('monetization')
+    // document.dispatchEvent(event)
+    // var actualCode = "const eventNew = new Event('monetization');document.dispatchEvent(eventNew);"
+
+    // var script = document.createElement('script');
+    // script.textContent = actualCode;
+    // (document.head||document.documentElement).appendChild(script);
+    // script.remove();
+
     // noinspection ES6MissingAwait
     void this.runtime.sendMessage(startWebMonetizationMessage(request))
   }
@@ -353,6 +364,7 @@ export class ContentScript {
     const allowed = message.data.allowed
     const monetizationRequest = this.monetization.getMonetizationRequest()
     const requests = this.tagManager.linkRequests()
+    // could be starting
     if (allowed) {
       // TODO: WM2 how to do the state check on the link requests ?
       if (monetizationRequest && this.monetization.getState() === 'stopped') {

@@ -41,7 +41,10 @@
         })
 
         const remove = () => {
-          document.getElementById('money').remove()
+          const moneyElement = document.getElementById('money')
+          if (moneyElement) {
+            moneyElement.remove()
+          }
           document.getElementById('remove').disabled = true
           document.getElementById('add').disabled = false
         }
@@ -140,10 +143,21 @@
                 ev.detail.assetScale
             )
           })
+
+          document.addEventListener('monetization', ev => {
+            log('monetization event dispatched: tip, amount: ' + ev.amount)
+          })
+
+          // console.log('Starting web monetization', document)
+          // const wmEvent = new MonetizationEvent('monetization', {
+          //   amount: 10
+          // })
+          // document.dispatchEvent(wmEvent)
         }
       })
     </script>
   </head>
+
   <body>
     <button id="clear">Clear Log</button>
     <button id="remove">Remove Tag</button>
