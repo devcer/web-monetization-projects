@@ -38,10 +38,6 @@ const DISABLED = true
 
 @injectable()
 export class MonetizationService {
-  frameDictionary: {
-    [streamId: string]: FrameSpec
-  } = {}
-
   constructor(
     private assoc: StreamAssociations,
     private streams: Streams,
@@ -77,14 +73,14 @@ export class MonetizationService {
     }
   }
 
-  routeStreamsMoneyEventsToContentScript() {
+  routeStreamsMoneyEventsToContentScript(requestId: string) {
     // pass stream monetization events to the correct tab
     // this.streams.on('money', (details: StreamMoneyEvent) => {
     // initial details event
     const details: StreamMoneyEvent = {
       packetNumber: 0,
       paymentPointer: '$ilp.uphold.com/gRa4mXFEMYrL',
-      requestId: '', // random id
+      requestId, // random id
       initiatingUrl: '',
       msSinceLastPacket: 1000,
       sentAmount: '',
@@ -96,8 +92,9 @@ export class MonetizationService {
       sourceAssetScale: 1,
       receipt: ''
     }
-    // const frame = this.assoc.getStreamFrame(details.requestId)
-    const frame = Object.values(this.frameDictionary)[0]
+    const frame = this.assoc.getStreamFrame(details.requestId)
+
+    if (!frame) return
     const { tabId, frameId } = frame
     if (details.packetNumber === 0) {
       const message: MonetizationStart = {
@@ -149,7 +146,6 @@ export class MonetizationService {
     const { tabId } = frame
     const { requestId } = details
 
-    this.frameDictionary[requestId] = frame
     this.assoc.addStreamId(frame, requestId)
     this.activeTabLogger.log(`startWM called with ${requestId}`, frame)
     this.tabStates.setFrame(frame, {
@@ -160,11 +156,7 @@ export class MonetizationService {
     // This used to be sent from content script as a separate message
     this.setFrameMonetized(frame, requestId, 0, 'startWebMonetization')
 
-    this.routeStreamsMoneyEventsToContentScript()
-
-    if (DISABLED) {
-      return true
-    }
+    this.routeStreamsMoneyEventsToContentScript(requestId)
 
     // TODO:WM2
     setTimeout(() => {
@@ -172,6 +164,10 @@ export class MonetizationService {
         from: 'startWebMonetization timeout(ms=10)'
       })
     }, 10)
+
+    if (DISABLED) {
+      return true
+    }
 
     // This may throw so do after mayMonetizeSite has had a chance to set
     // the page as being monetized (or attempted to be)
@@ -304,7 +300,9 @@ export class MonetizationService {
     ids.forEach(id => {
       this.tabStates.logLastMonetizationCommand(frame, 'pause', id)
       this.log('pausing stream', id)
-      this.streams.pauseStream(id)
+      if (!DISABLED) {
+        this.streams.pauseStream(id)
+      }
       this.sendSetMonetizationStateMessage(frame, 'stopped', id)
     })
     return true
@@ -325,17 +323,15 @@ export class MonetizationService {
         this.tabStates.logLastMonetizationCommand(frame, 'resume', id)
         this.log('resuming stream', id)
         this.sendSetMonetizationStateMessage(frame, 'pending', id)
-        this.streams.resumeStream(id)
+        if (!DISABLED) {
+          this.streams.resumeStream(id)
+        }
       }
     })
     return true
   }
 
   pauseWebMonetization(request: PauseWebMonetization, sender: MessageSender) {
-    if (DISABLED) {
-      return true
-    }
-
     return this.doPauseWebMonetization(
       getFrameSpec(sender),
       request.data.requestIds
@@ -343,9 +339,6 @@ export class MonetizationService {
   }
 
   resumeWebMonetization(request: ResumeWebMonetization, sender: MessageSender) {
-    if (DISABLED) {
-      return true
-    }
     // Note that this gets sent regardless of whether actually monetized or not
     // it's more like 'set tab interactive'
     return this.doResumeWebMonetization(
@@ -355,10 +348,6 @@ export class MonetizationService {
   }
 
   stopWebMonetization(request: StopWebMonetization, sender: MessageSender) {
-    if (DISABLED) {
-      return true
-    }
-
     return this.stopWebMonetizationStream(request.data.requestId)
   }
 
@@ -392,7 +381,9 @@ export class MonetizationService {
     )
     this.tabStates.logLastMonetizationCommand(frame, 'stop', requestId)
 
-    this.streams.closeStream(requestId)
+    if (!DISABLED) {
+      this.streams.closeStream(requestId)
+    }
     this.assoc.clearStreamFrameAndFromFrameSet(requestId)
     this.sendSetMonetizationStateMessage(frame, 'stopped', requestId)
     this.tabStates.reloadTabState({ from: 'stopWebMonetization' })
