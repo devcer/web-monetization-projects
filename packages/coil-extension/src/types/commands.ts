@@ -2,6 +2,8 @@ import { PaymentDetails } from '@webmonetization/polyfill-utils'
 import { MonetizationState } from '@webmonetization/types'
 import { StoreValue } from '@webmonetization/wext/services'
 
+import { IMonetizationEvent } from '../background/services/Monetization'
+
 import { FrameSpec } from './FrameSpec'
 
 /**
@@ -274,6 +276,15 @@ export interface ClearToken {
  *  browser.tabs.sendMessage
  */
 export interface MonetizationProgress {
+  command: 'monetizationProgress'
+  data: IMonetizationEvent
+}
+
+/**
+ *  background -> content
+ *  browser.tabs.sendMessage
+ */
+export interface OldMonetizationProgress {
   command: 'monetizationProgress'
   data: {
     requestId: string

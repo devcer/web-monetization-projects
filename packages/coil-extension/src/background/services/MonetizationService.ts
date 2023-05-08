@@ -11,6 +11,7 @@ import * as tokens from '../../types/tokens'
 import {
   MonetizationProgress,
   MonetizationStart,
+  OldMonetizationProgress,
   PauseWebMonetization,
   ResumeWebMonetization,
   SetMonetizationState,
@@ -29,6 +30,7 @@ import { ActiveTabLogger } from './ActiveTabLogger'
 import { StreamAssociations } from './StreamAssociations'
 import { StreamMoneyEvent } from './Stream'
 import { SPSPState } from './SPSPState'
+import { IMonetizationCurrencyAmount, IMonetizationEvent } from './Monetization'
 
 type MessageSender = chrome.runtime.MessageSender
 
@@ -38,6 +40,8 @@ const DISABLED = true
 
 @injectable()
 export class MonetizationService {
+  requestAssociations = {}
+  monetizationTimer = null // used for mock events
   constructor(
     private assoc: StreamAssociations,
     private streams: Streams,
@@ -76,15 +80,34 @@ export class MonetizationService {
   routeStreamsMoneyEventsToContentScript(requestId: string) {
     // pass stream monetization events to the correct tab
     // this.streams.on('money', (details: StreamMoneyEvent) => {
+
+    const localFrame = this.requestAssociations[requestId]
+    const { paymentPointer } = localFrame
+    const frame = this.assoc.getStreamFrame(requestId)
+
+    const amountSent: IMonetizationCurrencyAmount = {
+      currency: 'USD',
+      value: '0.1'
+    }
+
+    const monetizationEventDetails: IMonetizationEvent = {
+      amountSent,
+      paymentPointer,
+      incomingPayment: '',
+      amount: amountSent.value,
+      assetCode: amountSent.currency,
+      assetScale: '1'
+    }
+
     // initial details event
     const details: StreamMoneyEvent = {
       packetNumber: 0,
-      paymentPointer: '$ilp.uphold.com/gRa4mXFEMYrL',
+      paymentPointer,
       requestId, // random id
       initiatingUrl: '',
       msSinceLastPacket: 1000,
       sentAmount: '',
-      amount: '10',
+      amount: '0.1',
       assetCode: 'USD',
       assetScale: 1,
       sourceAmount: '',
@@ -92,25 +115,30 @@ export class MonetizationService {
       sourceAssetScale: 1,
       receipt: ''
     }
-    const frame = this.assoc.getStreamFrame(details.requestId)
 
     if (!frame) return
     const { tabId, frameId } = frame
-    if (details.packetNumber === 0) {
+    const packetNumber = 0
+
+    if (packetNumber === 0) {
       const message: MonetizationStart = {
         command: 'monetizationStart',
         data: {
-          paymentPointer: details.paymentPointer,
-          requestId: details.requestId
+          paymentPointer,
+          requestId
         }
       }
       this.api.tabs.sendMessage(tabId, message, { frameId })
     }
 
-    const message: MonetizationProgress = {
+    const message: OldMonetizationProgress = {
       command: 'monetizationProgress',
+      // data: {
+      //   ...monetizationEventDetails,
+      //   requestId
+      // }
       data: {
-        paymentPointer: details.paymentPointer,
+        paymentPointer,
         amount: details.amount,
         assetCode: details.assetCode,
         requestId: details.requestId,
@@ -122,12 +150,10 @@ export class MonetizationService {
       }
     }
     this.handleMonetizationProgress(frame, details)
-    // We don't want to send this progress event if the link has already
-    // errored.
-    // if (this.spspState.sendProgressEvent(details.requestId)) {
-    this.api.tabs.sendMessage(tabId, message, { frameId })
-    // }
-    // })
+
+    this.monetizationTimer = setInterval(() => {
+      this.api.tabs.sendMessage(tabId, message, { frameId })
+    }, 1000)
   }
 
   handleMonetizationProgress(
@@ -146,6 +172,10 @@ export class MonetizationService {
     const { tabId } = frame
     const { requestId } = details
 
+    this.requestAssociations[requestId] = {
+      ...frame,
+      ...details
+    }
     this.assoc.addStreamId(frame, requestId)
     this.activeTabLogger.log(`startWM called with ${requestId}`, frame)
     this.tabStates.setFrame(frame, {
@@ -332,6 +362,7 @@ export class MonetizationService {
   }
 
   pauseWebMonetization(request: PauseWebMonetization, sender: MessageSender) {
+    clearInterval(this.monetizationTimer)
     return this.doPauseWebMonetization(
       getFrameSpec(sender),
       request.data.requestIds
@@ -348,6 +379,7 @@ export class MonetizationService {
   }
 
   stopWebMonetization(request: StopWebMonetization, sender: MessageSender) {
+    clearInterval(this.monetizationTimer)
     return this.stopWebMonetizationStream(request.data.requestId)
   }
 
