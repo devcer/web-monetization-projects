@@ -133,6 +133,23 @@
             )
           })
 
+          document.monetization.addEventListener('monetization', ev => {
+            log(
+              'event: startedv2, state: ' +
+                document.monetization.state +
+                ' amount: ' +
+                ev.detail.amount +
+                ' code: ' +
+                ev.detail.assetCode +
+                ' scale: ' +
+                ev.detail.assetScale +
+                ' receipt: ' +
+                ev.detail.receipt +
+                ' amountSent: ' +
+                `${ev.detail.amountSent.value}${ev.detail.amountSent.currency}`
+            )
+          })
+
           document.monetization.addEventListener('tip', ev => {
             log(
               'event: tip, amount: ' +
