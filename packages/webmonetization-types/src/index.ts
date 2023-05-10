@@ -104,8 +104,13 @@ export type StartedState = 'started'
  *  - payment request denied by user intervention
  */
 export type StoppedState = 'stopped'
+export type MonetizationStateV2 = 'monetization'
 
-export type MonetizationState = PendingState | StartedState | StoppedState
+export type MonetizationState =
+  | PendingState
+  | StartedState
+  | StoppedState
+  | MonetizationStateV2
 
 export interface MonetizationEventMap {
   monetizationpending: MonetizationPendingEvent

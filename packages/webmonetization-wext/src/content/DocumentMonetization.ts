@@ -139,12 +139,12 @@ export class DocumentMonetization {
   dispatchMonetizationEventV2(detail: MonetizationEvent['detail']) {
     // Indicate that payment has started.
     const changed = this.setState({
-      state: 'started',
+      state: 'monetization',
       requestId: detail.requestId
     })
-    if (!changed) {
-      throw new Error(`expecting state transition`)
-    }
+    // if (!changed) {
+    //   throw new Error(`expecting state transition`)
+    // }
     // First nonzero packet has been fulfilled
     this.dispatchMonetizationEvent('monetization', detail)
   }
