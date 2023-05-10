@@ -10,7 +10,11 @@ import {
   DocumentMonetization,
   IdleDetection
 } from '@webmonetization/wext/content'
-import { MonetizationProgressEvent, TipEvent } from '@webmonetization/types'
+import {
+  MonetizationEventV2,
+  MonetizationProgressEvent,
+  TipEvent
+} from '@webmonetization/types'
 
 import * as tokens from '../../types/tokens'
 import {
@@ -249,6 +253,31 @@ export class ContentScript {
             this.monetization.dispatchMonetizationStartEventAndSetMonetizationState(
               request.data
             )
+          }
+        } else if (request.command === 'monetization') {
+          debug('monetization event')
+          const { data } = request
+          const {
+            amountSent,
+            paymentPointer,
+            incomingPayment,
+            requestId,
+            amount,
+            assetCode,
+            assetScale
+          } = data
+          const detail: MonetizationEventV2['detail'] = {
+            requestId,
+            amount,
+            assetCode,
+            assetScale,
+            amountSent,
+            paymentPointer,
+            incomingPayment
+          }
+
+          if (this.tagManager.atMostOneTagAndNoneInBody()) {
+            this.monetization.dispatchMonetizationEventV2(detail)
           }
         }
 

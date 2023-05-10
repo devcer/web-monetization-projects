@@ -1,7 +1,10 @@
 // noinspection ES6MissingAwait
 
 import { inject, injectable } from 'inversify'
-import { MonetizationState } from '@webmonetization/types'
+import {
+  MonetizationCurrencyAmount,
+  MonetizationState
+} from '@webmonetization/types'
 import {
   PaymentDetails,
   resolvePaymentEndpoint
@@ -11,6 +14,7 @@ import * as tokens from '../../types/tokens'
 import {
   MonetizationProgress,
   MonetizationStart,
+  MonetizationV2,
   OldMonetizationProgress,
   PauseWebMonetization,
   ResumeWebMonetization,
@@ -85,71 +89,58 @@ export class MonetizationService {
     const { paymentPointer } = localFrame
     const frame = this.assoc.getStreamFrame(requestId)
 
-    const amountSent: IMonetizationCurrencyAmount = {
+    const amountSent: MonetizationCurrencyAmount = {
       currency: 'USD',
       value: '0.1'
     }
 
-    const monetizationEventDetails: IMonetizationEvent = {
-      amountSent,
-      paymentPointer,
-      incomingPayment: '',
-      amount: amountSent.value,
-      assetCode: amountSent.currency,
-      assetScale: '1'
-    }
+    // const monetizationEventDetails: IMonetizationEvent = {
+    //   amountSent,
+    //   paymentPointer,
+    //   incomingPayment: '',
+    //   amount: amountSent.value,
+    //   assetCode: amountSent.currency,
+    //   assetScale: '1'
+    // }
 
     // initial details event
-    const details: StreamMoneyEvent = {
-      packetNumber: 0,
-      paymentPointer,
-      requestId, // random id
-      initiatingUrl: '',
-      msSinceLastPacket: 1000,
-      sentAmount: '',
-      amount: '0.1',
-      assetCode: 'USD',
-      assetScale: 1,
-      sourceAmount: '',
-      sourceAssetCode: '',
-      sourceAssetScale: 1,
-      receipt: ''
-    }
+    // const details: StreamMoneyEvent = {
+    //   packetNumber: 0,
+    //   paymentPointer,
+    //   requestId, // random id
+    //   initiatingUrl: '',
+    //   msSinceLastPacket: 1000,
+    //   sentAmount: '',
+    //   amount: '0.1',
+    //   assetCode: 'USD',
+    //   assetScale: 1,
+    //   sourceAmount: '',
+    //   sourceAssetCode: '',
+    //   sourceAssetScale: 1,
+    //   receipt: ''
+    // }
 
     if (!frame) return
     const { tabId, frameId } = frame
     const packetNumber = 0
 
-    if (packetNumber === 0) {
-      const message: MonetizationStart = {
-        command: 'monetizationStart',
-        data: {
-          paymentPointer,
-          requestId
-        }
+    const message: MonetizationV2 = {
+      command: 'monetization',
+      data: {
+        requestId,
+        amount: '0.1',
+        assetCode: 'USD',
+        assetScale: '1',
+        amountSent,
+        paymentPointer,
+        incomingPayment: ''
       }
+    }
+    if (packetNumber === 0) {
       this.api.tabs.sendMessage(tabId, message, { frameId })
     }
 
-    const message: OldMonetizationProgress = {
-      command: 'monetizationProgress',
-      // data: {
-      //   ...monetizationEventDetails,
-      //   requestId
-      // }
-      data: {
-        paymentPointer,
-        amount: details.amount,
-        assetCode: details.assetCode,
-        requestId: details.requestId,
-        assetScale: details.assetScale,
-        receipt: details.receipt,
-        sourceAmount: details.sourceAmount,
-        sourceAssetScale: details.sourceAssetScale,
-        sourceAssetCode: details.sourceAssetCode
-      }
-    }
-    this.handleMonetizationProgress(frame, details)
+    // this.handleMonetizationProgress(frame, details)
 
     this.monetizationTimer = setInterval(() => {
       this.api.tabs.sendMessage(tabId, message, { frameId })

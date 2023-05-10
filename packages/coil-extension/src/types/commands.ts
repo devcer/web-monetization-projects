@@ -1,5 +1,9 @@
 import { PaymentDetails } from '@webmonetization/polyfill-utils'
-import { MonetizationState } from '@webmonetization/types'
+import {
+  MonetizationCurrencyAmount,
+  MonetizationEventV2,
+  MonetizationState
+} from '@webmonetization/types'
 import { StoreValue } from '@webmonetization/wext/services'
 
 import { IMonetizationEvent } from '../background/services/Monetization'
@@ -275,16 +279,16 @@ export interface ClearToken {
  *  background -> content
  *  browser.tabs.sendMessage
  */
-export interface MonetizationProgress {
-  command: 'monetizationProgress'
-  data: IMonetizationEvent
-}
+// export interface MonetizationProgress {
+//   command: 'monetizationProgress'
+//   data: IMonetizationEvent
+// }
 
 /**
  *  background -> content
  *  browser.tabs.sendMessage
  */
-export interface OldMonetizationProgress {
+export interface MonetizationProgress {
   command: 'monetizationProgress'
   data: {
     requestId: string
@@ -312,6 +316,20 @@ export interface MonetizationStart {
   data: {
     requestId: string
     paymentPointer: string
+  }
+}
+
+export interface MonetizationV2 {
+  command: 'monetization'
+  data: {
+    requestId: string
+    amount?: string
+    assetCode?: string
+    assetScale?: string
+    receipt?: string
+    amountSent: MonetizationCurrencyAmount
+    paymentPointer: string
+    incomingPayment: string
   }
 }
 
@@ -492,6 +510,7 @@ export type ToContentMessage =
   | CheckAdaptedContent
   | MonetizationProgress
   | MonetizationStart
+  | MonetizationV2
   | SetMonetizationState
   | CheckIFrameIsAllowedFromBackground
   | ReportCorrelationIdToParentContentScript

@@ -145,7 +145,10 @@
           })
 
           document.addEventListener('monetization', ev => {
-            log('monetization event dispatched: tip, amount: ' + ev.amount)
+            log(
+              'monetization event dispatched: tip, amount: ' +
+                JSON.stringify(ev)
+            )
           })
 
           // console.log('Starting web monetization', document)

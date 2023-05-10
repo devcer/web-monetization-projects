@@ -136,6 +136,19 @@ export class DocumentMonetization {
     this.dispatchMonetizationEvent('monetizationstart', detail)
   }
 
+  dispatchMonetizationEventV2(detail: MonetizationEvent['detail']) {
+    // Indicate that payment has started.
+    const changed = this.setState({
+      state: 'started',
+      requestId: detail.requestId
+    })
+    if (!changed) {
+      throw new Error(`expecting state transition`)
+    }
+    // First nonzero packet has been fulfilled
+    this.dispatchMonetizationEvent('monetization', detail)
+  }
+
   dispatchMonetizationEvent(
     type: MonetizationEvent['type'],
     detailSource: MonetizationEvent['detail'],

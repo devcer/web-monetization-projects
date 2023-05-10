@@ -35,6 +35,22 @@ export interface MonetizationStopEvent
   type: 'monetizationstop'
 }
 
+export interface MonetizationCurrencyAmount {
+  currency: string
+  value: string
+}
+
+export interface MonetizationEventDetailV2 extends MonetizationEventDetail {
+  amount?: string
+  assetCode?: string
+  assetScale?: string
+  receipt?: string
+  amountSent: MonetizationCurrencyAmount
+  paymentPointer: string
+  incomingPayment: string
+  requestId?: string
+}
+
 export interface MonetizationProgressEventDetail
   extends MonetizationEventDetail {
   // The amount * received * at the destination specified in the SPSP endpoint
@@ -42,6 +58,11 @@ export interface MonetizationProgressEventDetail
   assetCode: string
   assetScale: number
   receipt?: string
+}
+
+export interface MonetizationEventV2
+  extends CustomEvent<MonetizationEventDetailV2> {
+  type: 'monetization'
 }
 
 export interface MonetizationProgressEvent
@@ -91,6 +112,7 @@ export interface MonetizationEventMap {
   monetizationstart: MonetizationStartEvent
   monetizationstop: MonetizationStopEvent
   monetizationprogress: MonetizationProgressEvent
+  monetization: MonetizationEventV2
 }
 
 export type MonetizationEventType = keyof MonetizationEventMap
@@ -119,6 +141,7 @@ export type MonetizationEvent =
   | MonetizationStartEvent
   | MonetizationPendingEvent
   | MonetizationStopEvent
+  | MonetizationEventV2
 
 export interface SPSPResponse {
   destination_account: string
