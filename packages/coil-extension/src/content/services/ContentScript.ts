@@ -266,19 +266,25 @@ export class ContentScript {
             assetCode,
             assetScale
           } = data
-          const detail: MonetizationEventV2['detail'] = {
+          const eventDetail: MonetizationEventV2['detail'] = {
             requestId,
-            amount,
-            assetCode,
-            assetScale,
-            amountSent,
             paymentPointer,
+            receipt: '',
+            assetScale,
+            assetCode,
+            amount,
+            amountSent,
             incomingPayment
           }
-
-          if (this.tagManager.atMostOneTagAndNoneInBody()) {
-            this.monetization.dispatchMonetizationEventV2(detail)
-          }
+          const firefoxProof = mozClone(eventDetail, this.document)
+          this.tagManager.dispatchEventByLinkId(
+            data.requestId,
+            new CustomEvent('monetization', {
+              bubbles: true,
+              cancelable: false,
+              detail: firefoxProof
+            })
+          )
         }
 
         // Don't need to return true here, not using sendResponse

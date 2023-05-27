@@ -7,6 +7,7 @@
       name="monetization"
       content="$ilp.uphold.com/gRa4mXFEMYrL"
     />
+    <link id="newlink-money" rel="monetization" href="$ilp.uphold.com/gRa4mXFEMYrL">
     <script>
       if (document.monetization) {
         document.monetizationExtensionInstalled = true
@@ -134,20 +135,20 @@
           })
 
           document.monetization.addEventListener('monetization', ev => {
-            log(
-              'event: startedv2, state: ' +
-                document.monetization.state +
-                ' amount: ' +
-                ev.detail.amount +
-                ' code: ' +
-                ev.detail.assetCode +
-                ' scale: ' +
-                ev.detail.assetScale +
-                ' receipt: ' +
-                ev.detail.receipt +
-                ' amountSent: ' +
-                `${ev.detail.amountSent.value}${ev.detail.amountSent.currency}`
-            )
+            // log(
+            //   'event: startedv2, state: ' +
+            //     document.monetization.state +
+            //     ' amount: ' +
+            //     ev.detail.amount +
+            //     ' code: ' +
+            //     ev.detail.assetCode +
+            //     ' scale: ' +
+            //     ev.detail.assetScale +
+            //     ' receipt: ' +
+            //     ev.detail.receipt +
+            //     ' amountSent: ' +
+            //     `${ev.detail.amountSent.value}${ev.detail.amountSent.currency}`
+            // )
           })
 
           document.monetization.addEventListener('tip', ev => {
@@ -163,17 +164,31 @@
 
           document.addEventListener('monetization', ev => {
             log(
-              'monetization event dispatched: tip, amount: ' +
+              'monetization event dispatched: tip, amount: ',
                 JSON.stringify(ev)
             )
           })
-
-          // console.log('Starting web monetization', document)
-          // const wmEvent = new MonetizationEvent('monetization', {
-          //   amount: 10
-          // })
-          // document.dispatchEvent(wmEvent)
         }
+
+        const moneyLinkElement = document.getElementById('newlink-money')
+        moneyLinkElement.addEventListener('monetization', (ev) => {
+          const monetizationDetail = ev.detail;
+          const {amount, assetCode, assetScale, receipt, amountSent, paymentPointer} = monetizationDetail;
+          log(
+              'event: monetization, state: ' +
+                paymentPointer +
+                ' amount: ' +
+                amount +
+                ' code: ' +
+                assetCode +
+                ' scale: ' +
+                assetScale +
+                ' receipt: ' +
+                receipt +
+                ' amountSent: ' +
+                `${amountSent.value}${amountSent.currency}`
+          )
+        })
       })
     </script>
   </head>
