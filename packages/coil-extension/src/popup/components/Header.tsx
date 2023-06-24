@@ -3,6 +3,7 @@ import { styled, Theme } from '@material-ui/core'
 import CloseRoundedIcon from '@material-ui/icons/CloseRounded'
 
 import { CoilLogo } from './icons/CoilLogo'
+import { MonetizationLogo } from './icons/MonetizationLogo'
 
 //
 // Styles
@@ -33,7 +34,7 @@ const CloseButton = styled('button')(({ theme }) => ({
 export const Header: React.FC = props => {
   return (
     <HeaderContainer>
-      <CoilLogo />
+      <MonetizationLogo />
       <HeaderTitle>{props.children}</HeaderTitle>
       <CloseButton tabIndex={-1} onClick={() => window.close()}>
         <CloseRoundedIcon />
